@@ -1,0 +1,243 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Brian Button Explosion</title>
+    <style>
+        body {
+            margin: 0;
+            overflow: hidden; /* Prevent scrolling */
+            background-color: white;
+        }
+        canvas {
+            display: block; /* Remove default inline spacing */
+        }
+    </style>
+</head>
+<body>
+    <canvas id="gameCanvas"></canvas>
+    <script>
+        const canvas = document.getElementById('gameCanvas');
+        const ctx = canvas.getContext('2d');
+
+        // Set initial canvas size to full window
+        let WIDTH = window.innerWidth;
+        let HEIGHT = window.innerHeight;
+        canvas.width = WIDTH;
+        canvas.height = HEIGHT;
+
+        // Load the image
+        const IMAGE_PATH = "test.png";
+        const image = new Image();
+        let imageLoaded = false;
+        image.onload = () => {
+            imageLoaded = true;
+            initParticles();
+            animate();
+        };
+        image.onerror = () => {
+            console.error(`Failed to load image at ${IMAGE_PATH}`);
+        };
+        image.src = IMAGE_PATH;
+
+        // Button properties (dynamically centered)
+        const button = {
+            width: 125,
+            height: 75,
+            color: 'rgb(168, 60, 50)',
+            text: 'brian',
+            pressed: false,
+            scale: 1.0,
+            pressedScale: 0.9
+        };
+        // Function to update button position
+        function updateButtonPosition() {
+            button.x = (WIDTH - button.width) / 2;
+            button.y = (HEIGHT - button.height) / 2;
+        }
+        updateButtonPosition(); // Initial position
+
+        // Image Particle class
+        class ImageParticle {
+            constructor(x, y, img) {
+                this.x = x;
+                this.y = y;
+                this.image = img;
+                this.vx = (Math.random() * 30) - 15;
+                this.vy = (Math.random() * 30) - 15;
+                this.angle = Math.random() * 360;
+                this.rotationSpeed = (Math.random() * 4) - 2;
+                this.maxSize = 200;
+                const aspectRatio = img.width / img.height;
+                if (aspectRatio >= 1) {
+                    this.width = this.maxSize;
+                    this.height = this.maxSize / aspectRatio;
+                } else {
+                    this.height = this.maxSize;
+                    this.width = this.maxSize * aspectRatio;
+                }
+            }
+
+            update() {
+                this.x += this.vx;
+                this.y += this.vy;
+                this.vx *= 0.98;
+                this.vy *= 0.98;
+                this.vy += 0.1;
+                this.angle += this.rotationSpeed;
+            }
+
+            draw() {
+                ctx.save();
+                ctx.translate(this.x, this.y);
+                ctx.rotate(this.angle * Math.PI / 180);
+                ctx.drawImage(this.image, -this.width / 2, -this.height / 2, this.width, this.height);
+                ctx.restore();
+            }
+        }
+
+        // Confetti Particle class
+        class ConfettiParticle {
+            constructor(x, y) {
+                this.x = x;
+                this.y = y;
+                this.vx = (Math.random() * 30) - 15;
+                this.vy = (Math.random() * 30) - 15;
+                this.angle = Math.random() * 360;
+                this.rotationSpeed = (Math.random() * 4) - 2;
+                this.width = Math.random() * 10 + 5;
+                this.height = Math.random() * 10 + 5;
+                this.color = `rgb(${Math.floor(Math.random() * 256)}, ${Math.floor(Math.random() * 256)}, ${Math.floor(Math.random() * 256)})`;
+            }
+
+            update() {
+                this.x += this.vx;
+                this.y += this.vy;
+                this.vx *= 0.98;
+                this.vy *= 0.98;
+                this.vy += 0.1;
+                this.angle += this.rotationSpeed;
+            }
+
+            draw() {
+                ctx.save();
+                ctx.translate(this.x, this.y);
+                ctx.rotate(this.angle * Math.PI / 180);
+                ctx.fillStyle = this.color;
+                ctx.fillRect(-this.width / 2, -this.height / 2, this.width, this.height);
+                ctx.restore();
+            }
+        }
+
+        let particles = [];
+        let particleImage;
+
+        function initParticles() {
+            const offscreenCanvas = document.createElement('canvas');
+            offscreenCanvas.width = image.width;
+            offscreenCanvas.height = image.height;
+            const offscreenCtx = offscreenCanvas.getContext('2d');
+            offscreenCtx.drawImage(image, 0, 0, image.width, image.height);
+            particleImage = offscreenCanvas;
+        }
+
+        function spawnExplosion() {
+            if (!imageLoaded) return;
+            for (let i = 0; i < 100; i++) {
+                if (Math.random() < 0.5) {
+                    particles.push(new ImageParticle(
+                        button.x + button.width / 2,
+                        button.y + button.height / 2,
+                        particleImage
+                    ));
+                } else {
+                    particles.push(new ConfettiParticle(
+                        button.x + button.width / 2,
+                        button.y + button.height / 2
+                    ));
+                }
+            }
+        }
+
+        // Mouse events
+        canvas.addEventListener('mousedown', (e) => {
+            const rect = canvas.getBoundingClientRect();
+            const mouseX = e.clientX - rect.left;
+            const mouseY = e.clientY - rect.top;
+            if (mouseX >= button.x && mouseX <= button.x + button.width &&
+                mouseY >= button.y && mouseY <= button.y + button.height) {
+                button.pressed = true;
+                button.scale = button.pressedScale;
+                spawnExplosion();
+            }
+        });
+
+        canvas.addEventListener('mouseup', (e) => {
+            const rect = canvas.getBoundingClientRect();
+            const mouseX = e.clientX - rect.left;
+            const mouseY = e.clientY - rect.top;
+            if (button.pressed && mouseX >= button.x && mouseX <= button.x + button.width &&
+                mouseY >= button.y && mouseY <= button.y + button.height) {
+                button.pressed = false;
+                button.scale = 1.0;
+            }
+        });
+
+        // Resize handler
+        window.addEventListener('resize', () => {
+            WIDTH = window.innerWidth;
+            HEIGHT = window.innerHeight;
+            canvas.width = WIDTH;
+            canvas.height = HEIGHT;
+            updateButtonPosition();
+        });
+
+        function drawButton() {
+            const scaledWidth = button.width * button.scale;
+            const scaledHeight = button.height * button.scale;
+            const scaledX = button.x + (button.width - scaledWidth) / 2;
+            const scaledY = button.y + (button.height - scaledHeight) / 2;
+
+            ctx.fillStyle = button.color;
+            ctx.beginPath();
+            ctx.roundRect(scaledX, scaledY, scaledWidth, scaledHeight, 20);
+            ctx.fill();
+
+            ctx.fillStyle = 'white';
+            ctx.font = '48px Arial';
+            ctx.textAlign = 'center';
+            ctx.textBaseline = 'middle';
+            const textScale = button.scale;
+            ctx.save();
+            ctx.translate(button.x + button.width / 2, button.y + button.height / 2);
+            ctx.scale(textScale, textScale);
+            ctx.fillText(button.text, 0, 0);
+            ctx.restore();
+        }
+
+        function animate() {
+            ctx.clearRect(0, 0, WIDTH, HEIGHT);
+
+            particles = particles.filter(p => 
+                p.x >= -Math.max(p.width, p.height) && p.x <= WIDTH + Math.max(p.width, p.height) &&
+                p.y >= -Math.max(p.width, p.height) && p.y <= HEIGHT + Math.max(p.width, p.height)
+            );
+            particles.forEach(p => {
+                p.update();
+                p.draw();
+            });
+
+            drawButton();
+
+            requestAnimationFrame(animate);
+        }
+
+        if (image.complete) {
+            imageLoaded = true;
+            initParticles();
+            animate();
+        }
+    </script>
+</body>
+</html>
