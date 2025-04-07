@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Brian Button Explosion</title>
+    <title>Brian Button</title>
     <style>
         body {
             margin: 0;
@@ -144,19 +144,18 @@
 
         function spawnExplosion() {
             if (!imageLoaded) return;
+            for (let i = 0; i < 50; i++) {
+                particles.push(new ImageParticle(
+                    button.x + button.width / 2,
+                    button.y + button.height / 2,
+                    particleImage
+                ));
+            }
             for (let i = 0; i < 100; i++) {
-                if (Math.random() < 0.5) {
-                    particles.push(new ImageParticle(
-                        button.x + button.width / 2,
-                        button.y + button.height / 2,
-                        particleImage
-                    ));
-                } else {
-                    particles.push(new ConfettiParticle(
-                        button.x + button.width / 2,
-                        button.y + button.height / 2
-                    ));
-                }
+                particles.push(new ConfettiParticle(
+                    button.x + button.width / 2,
+                    button.y + button.height / 2
+                ));
             }
         }
 
